@@ -25,6 +25,7 @@ cp -rp "$THEOS_STAGING_DIR/usr/bin/trollvncmanager" "$THEOS_STAGING_DIR/Applicat
 cp -rp "$THEOS_STAGING_DIR/Library/PreferenceBundles/TrollVNCPrefs.bundle" "$THEOS_STAGING_DIR/Applications/TrollVNC.app/"
 rm -f "$THEOS_STAGING_DIR/Applications/TrollVNC.app/TrollVNCPrefs.bundle/TrollVNCPrefs"
 cp -rp "$THEOS_STAGING_DIR/usr/share/trollvnc/webclients" "$THEOS_STAGING_DIR/Applications/TrollVNC.app/"
+cp -p "$THEOS_STAGING_DIR/usr/share/trollvnc/iphone13pro-defaults.plist" "$THEOS_STAGING_DIR/Applications/TrollVNC.app/"
 
 # Remove unused files
 rm -rf "${THEOS_STAGING_DIR:?}/usr"

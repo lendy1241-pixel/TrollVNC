@@ -81,6 +81,22 @@ int SBSLaunchApplicationWithIdentifierAndURLAndLaunchOptions(CFStringRef bundleI
     _serviceRunning = NO;
     _userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.82flex.trollvnc"];
 
+    // Persist editable defaults before the separate manager/server reads this domain.
+    // Registered defaults alone are local to this process and would be invisible there.
+    NSString *profilePath = [[NSBundle mainBundle] pathForResource:@"iphone13pro-defaults" ofType:@"plist"];
+    NSDictionary *profile = profilePath ? [NSDictionary dictionaryWithContentsOfFile:profilePath] : nil;
+    NSDictionary *saved = [_userDefaults persistentDomainForName:@"com.82flex.trollvnc"];
+    BOOL changed = NO;
+    for (NSString *key in profile) {
+        if (!saved[key]) {
+            [_userDefaults setObject:profile[key] forKey:key];
+            changed = YES;
+        }
+    }
+    if (changed) {
+        [_userDefaults synchronize];
+    }
+
     NSBundle *prefsBundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"TrollVNCPrefs"
                                                                                      ofType:@"bundle"]];
 

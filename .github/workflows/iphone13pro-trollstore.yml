@@ -1,0 +1,119 @@
+name: Build iPhone 13 Pro TrollStore app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone13pro-trollstore-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FINALPACKAGE: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - name: Checkout TrollVNC
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install package and signing tools
+        run: brew install ldid-procursus make dpkg
+
+      - name: Checkout Theos
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: roothide/theos
+          ref: cfba89a53a05b4a1b822121158acc3669c20602f
+          path: theos-roothide
+          submodules: recursive
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Install iOS SDKs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          export THEOS="$GITHUB_WORKSPACE/theos-roothide"
+          "$THEOS/bin/install-sdk" iPhoneOS16.5
+          "$THEOS/bin/install-sdk" iPhoneOS14.5
+
+      - name: Build editable TrollStore application
+        run: |
+          source devkit/bootstrap.sh
+          gmake clean
+          gmake -j3 package
+
+      - name: Verify TrollStore app and record build details
+        run: |
+          set -euo pipefail
+          package=$(find packages -maxdepth 1 -name '*.tipa' -print -quit)
+          test -n "$package"
+          verify="$RUNNER_TEMP/trollvnc-app-verify"
+          mkdir -p "$verify"
+          unzip -q "$package" -d "$verify"
+          app="$verify/Payload/TrollVNC.app"
+          test -f "$app/TrollVNC"
+          test -f "$app/trollvncserver"
+          test -f "$app/trollvncmanager"
+          test -f "$app/TrollVNCPrefs.bundle/Root.plist"
+          test ! -e "$app/TrollVNCPrefs.bundle/Managed.plist"
+          plutil -lint "$app/Info.plist" "$app/iphone13pro-defaults.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = com.82flex.TrollVNCApp
+          export TVNC_VERIFY_APP="$app"
+          python3 - <<'PY'
+          import os, pathlib, plistlib, re, subprocess
+          app = pathlib.Path(os.environ['TVNC_VERIFY_APP'])
+          info = plistlib.loads((app / 'Info.plist').read_bytes())
+          assert tuple(map(int, info['MinimumOSVersion'].split('.'))) <= (15, 0)
+          defaults = plistlib.loads((app / 'iphone13pro-defaults.plist').read_bytes())
+          assert defaults['Enabled'] is False and defaults['ViewOnly'] is False
+          assert defaults['Scale'] == 1.0 and defaults['FrameRateSpec'] == '60'
+          assert defaults['ModifierMap'] == 'winctrl'
+          assert not any('password' in key.lower() for key in defaults)
+          for name in ('TrollVNC', 'trollvncserver', 'trollvncmanager'):
+              binary = app / name
+              metadata = subprocess.check_output(['xcrun', 'vtool', '-show-build', str(binary)], text=True)
+              targets = re.findall(r'(?:minos|version)\s+(\d+\.\d+(?:\.\d+)?)', metadata)
+              assert targets, (name, metadata)
+              assert all(tuple(map(int, target.split('.'))) <= (15, 0, 0) for target in targets), (name, metadata)
+              assert 'arm64' in subprocess.check_output(['file', str(binary)], text=True)
+              entitlements = plistlib.loads(subprocess.check_output(['ldid', '-e', str(binary)]))
+              assert entitlements.get('platform-application') is True, name
+          PY
+          {
+            echo "TrollVNC TrollStore app for iPhone 13 Pro / iOS 15"
+            echo "Source commit: $GITHUB_SHA"
+            echo "Theos commit: cfba89a53a05b4a1b822121158acc3669c20602f"
+            xcodebuild -version
+            plutil -p "$app/Info.plist"
+            for binary in TrollVNC trollvncserver trollvncmanager; do
+              file "$app/$binary"
+              xcrun vtool -show-build "$app/$binary"
+              otool -L "$app/$binary"
+              ldid -e "$app/$binary" > "packages/$binary-entitlements.plist"
+            done
+          } > packages/BUILD-INFO.txt
+          cd packages
+          shasum -a 256 ./*.tipa > SHA256SUMS.txt
+
+      - name: Upload TrollStore installable application
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: TrollVNC-iPhone13Pro-TrollStore
+          path: |
+            packages/*.tipa
+            packages/SHA256SUMS.txt
+            packages/BUILD-INFO.txt
+            packages/*-entitlements.plist
+          if-no-files-found: error
+          retention-days: 30
