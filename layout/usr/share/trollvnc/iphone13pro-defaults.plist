@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Enabled</key><false/>
+    <key>DesktopName</key><string>iPhone 13 Pro</string>
+    <key>Port</key><integer>5901</integer>
+    <key>ViewOnly</key><false/>
+    <key>Scale</key><real>1.0</real>
+    <key>FrameRateSpec</key><string>60</string>
+    <key>DeferWindowSec</key><real>0.008</real>
+    <key>MaxInflight</key><integer>1</integer>
+    <key>TileSize</key><integer>32</integer>
+    <key>FullscreenThresholdPercent</key><integer>0</integer>
+    <key>MaxRects</key><integer>256</integer>
+    <key>AsyncSwap</key><false/>
+    <key>OrientationSync</key><true/>
+    <key>ModifierMap</key><string>winctrl</string>
+    <key>ClipboardEnabled</key><true/>
+    <key>KeepAliveSec</key><integer>15</integer>
+    <key>BonjourEnabled</key><true/>
+    <key>AutoAssistEnabled</key><true/>
+    <key>NaturalScroll</key><false/>
+    <key>ServerCursor</key><false/>
+    <key>SingleNotifEnabled</key><true/>
+    <key>ClientNotifsEnabled</key><true/>
+    <key>KeyLogging</key><false/>
+    <key>FileTransferEnabled</key><false/>
+    <key>HttpPort</key><integer>0</integer>
+</dict>
+</plist>

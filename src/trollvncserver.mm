@@ -324,7 +324,7 @@ static void printUsageAndExit(const char *prog) {
     fprintf(stderr,
             "  -w k=v,.. Wheel tuning keys: step,coalesce,max,clamp,amp,cap,minratio,durbase,durk,durmin,durmax\n");
     fprintf(stderr, "  -N         Natural scroll direction (invert wheel)\n");
-    fprintf(stderr, "  -M scheme  Modifier mapping: std|altcmd (default: std)\n");
+    fprintf(stderr, "  -M scheme  Modifier mapping: std|altcmd|winctrl (default: std)\n");
     fprintf(stderr, "  -K         Log keyboard events to stderr\n\n");
 
     fprintf(stderr, "HTTP/WebSockets:\n");
@@ -690,6 +690,8 @@ static void parseDaemonOptions(void) {
     if ([modMap isKindOfClass:[NSString class]]) {
         if ([modMap isEqualToString:@"altcmd"])
             gModMapScheme = 1;
+        else if ([modMap isEqualToString:@"winctrl"])
+            gModMapScheme = 2;
         else
             gModMapScheme = 0;
     }
@@ -914,7 +916,7 @@ static void parseDaemonOptions(void) {
 
     // Wheel / input tuning
     [cfg appendFormat:@"wheel=%.1f natural=%@ mod=%s ", gWheelStepPx, gWheelNaturalDir ? @"YES" : @"NO",
-                      (gModMapScheme == 1) ? "altcmd" : "std"];
+                      (gModMapScheme == 2) ? "winctrl" : ((gModMapScheme == 1) ? "altcmd" : "std")];
 
     // Networking / discovery
     [cfg appendFormat:@"bonjour=%@ ", gBonjourEnabled ? @"on" : @"off"];
@@ -1350,11 +1352,13 @@ static void parseCLI(int argc, const char *argv[]) {
                 gModMapScheme = 0;
             else if (strcmp(val, "altcmd") == 0)
                 gModMapScheme = 1;
+            else if (strcmp(val, "winctrl") == 0)
+                gModMapScheme = 2;
             else {
-                TVPrintError("Invalid -M scheme: %s (expected std|altcmd)", val);
+                TVPrintError("Invalid -M scheme: %s (expected std|altcmd|winctrl)", val);
                 exit(EXIT_FAILURE);
             }
-            TVLog(@"CLI: Modifier mapping set to %s", gModMapScheme == 0 ? "std" : "altcmd");
+            TVLog(@"CLI: Modifier mapping set to %s", gModMapScheme == 2 ? "winctrl" : (gModMapScheme == 0 ? "std" : "altcmd"));
             break;
         }
         case 'K': {
@@ -2906,9 +2910,9 @@ NS_INLINE NSString *keysymToString(rfbKeySym ks) {
     case XK_Shift_R:
         return @"RIGHTSHIFT";
     case XK_Control_L:
-        return @"LEFTCONTROL";
+        return (gModMapScheme == 2) ? @"LEFTCOMMAND" : @"LEFTCONTROL";
     case XK_Control_R:
-        return @"RIGHTCONTROL";
+        return (gModMapScheme == 2) ? @"RIGHTCOMMAND" : @"RIGHTCONTROL";
     // Modifier mapping depending on scheme
     case XK_Alt_L:
         return (gModMapScheme == 1) ? @"LEFTCOMMAND" : @"LEFTALT"; // Option or Command
@@ -2919,13 +2923,13 @@ NS_INLINE NSString *keysymToString(rfbKeySym ks) {
     case XK_Mode_switch:
         return @"RIGHTALT"; // Mode switch often behaves like AltGr
     case XK_Meta_L:
-        return (gModMapScheme == 1) ? @"LEFTALT" : @"LEFTCOMMAND"; // Option or Command
+        return (gModMapScheme == 2) ? @"LEFTCONTROL" : ((gModMapScheme == 1) ? @"LEFTALT" : @"LEFTCOMMAND");
     case XK_Meta_R:
-        return (gModMapScheme == 1) ? @"RIGHTALT" : @"RIGHTCOMMAND"; // Option or Command
+        return (gModMapScheme == 2) ? @"RIGHTCONTROL" : ((gModMapScheme == 1) ? @"RIGHTALT" : @"RIGHTCOMMAND");
     case XK_Super_L:
-        return @"LEFTCOMMAND"; // Treat Super as Command in both schemes
+        return (gModMapScheme == 2) ? @"LEFTCONTROL" : @"LEFTCOMMAND";
     case XK_Super_R:
-        return @"RIGHTCOMMAND";
+        return (gModMapScheme == 2) ? @"RIGHTCONTROL" : @"RIGHTCOMMAND";
     default:
         break;
     }

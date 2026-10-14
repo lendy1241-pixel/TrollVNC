@@ -399,7 +399,7 @@
 			<key>label</key>
 			<string></string>
 			<key>footerText</key>
-			<string>Choose how remote Alt/Super map to iOS Option/Command.</string>
+			<string>Choose how remote Ctrl/Alt/Super map to iOS Control/Option/Command.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -418,19 +418,22 @@
 			<array>
 				<string>Standard</string>
 				<string>Alt→Cmd</string>
+				<string>Windows Ctrl→Cmd</string>
 			</array>
 			<key>validTitles</key>
 			<array>
 				<string>Standard</string>
 				<string>Alt as Command</string>
+				<string>Windows Control as Command</string>
 			</array>
 			<key>validValues</key>
 			<array>
 				<string>std</string>
 				<string>altcmd</string>
+				<string>winctrl</string>
 			</array>
 			<key>staticTextMessage</key>
-			<string>Standard: Alt as Option, Super as Command. On macOS clients, Alt as Command (altcmd) is recommended.</string>
+			<string>Windows Control as Command maps Ctrl+C/V/A/X/Z to the matching iOS Command shortcuts. Standard and Alt as Command remain available.</string>
 		</dict>
 
 		<!-- Assistive Touch -->

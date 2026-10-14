@@ -1,0 +1,93 @@
+name: Build iPhone 13 Pro rootless
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone13pro-rootless-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FINALPACKAGE: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - name: Checkout TrollVNC
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install package and signing tools
+        run: brew install ldid-procursus make dpkg
+
+      - name: Checkout Theos
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: roothide/theos
+          ref: cfba89a53a05b4a1b822121158acc3669c20602f
+          path: theos-roothide
+          submodules: recursive
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Install iOS SDK
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          export THEOS="$GITHUB_WORKSPACE/theos-roothide"
+          "$THEOS/bin/install-sdk" iPhoneOS16.5
+
+      - name: Build editable rootless package
+        run: |
+          source devkit/rootless.sh
+          gmake clean
+          gmake -j3 package
+
+      - name: Verify package and record build details
+        run: |
+          set -euo pipefail
+          package=$(find packages -maxdepth 1 -name '*.deb' -print -quit)
+          test -n "$package"
+          test "$(dpkg-deb --field "$package" Architecture)" = iphoneos-arm64
+          verify="$RUNNER_TEMP/trollvnc-package-verify"
+          mkdir -p "$verify"
+          dpkg-deb -x "$package" "$verify"
+          server="$verify/var/jb/usr/bin/trollvncserver"
+          test -f "$server"
+          test -f "$verify/var/jb/Library/PreferenceBundles/TrollVNCPrefs.bundle/TrollVNCPrefs"
+          plutil -lint "$verify/var/jb/usr/share/trollvnc/iphone13pro-defaults.plist"
+          ldid -e "$server" > packages/server-entitlements.plist
+          plutil -lint packages/server-entitlements.plist
+          {
+            echo "TrollVNC rootless build for iPhone 13 Pro / Dopamine / iOS 15"
+            echo "Source commit: $GITHUB_SHA"
+            echo "Theos commit: cfba89a53a05b4a1b822121158acc3669c20602f"
+            xcodebuild -version
+            dpkg-deb --field "$package" Package Version Architecture Depends
+            file "$server"
+            xcrun vtool -show-build "$server"
+            otool -L "$server"
+          } > packages/BUILD-INFO.txt
+          cd packages
+          shasum -a 256 ./*.deb > SHA256SUMS.txt
+
+      - name: Upload installable package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: TrollVNC-iPhone13Pro-rootless
+          path: |
+            packages/*.deb
+            packages/SHA256SUMS.txt
+            packages/BUILD-INFO.txt
+            packages/server-entitlements.plist
+          if-no-files-found: error
+          retention-days: 30

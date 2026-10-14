@@ -6,6 +6,16 @@ if [ "$DPKG_MAINTSCRIPT_ARCH" == "iphoneos-arm64" ]; then
     DPKG_ROOT="/var/jb"
 fi
 
+# First-install defaults stay editable in Settings and never replace user settings.
+# Enable the service after setting a full-access password in Settings -> TrollVNC.
+USER_PREFS="/var/mobile/Library/Preferences/com.82flex.trollvnc.plist"
+FIRST_INSTALL_DEFAULTS="$DPKG_ROOT/usr/share/trollvnc/iphone13pro-defaults.plist"
+if [ ! -e "$USER_PREFS" ] && [ -f "$FIRST_INSTALL_DEFAULTS" ]; then
+    cp "$FIRST_INSTALL_DEFAULTS" "$USER_PREFS"
+    chown mobile:mobile "$USER_PREFS"
+    chmod 600 "$USER_PREFS"
+fi
+
 SERV_AGENT="$DPKG_ROOT/Library/LaunchDaemons/com.82flex.trollvnc.plist"
 
 if [ -f "$SERV_AGENT" ]; then
