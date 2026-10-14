@@ -47,11 +47,15 @@ jobs:
           "$THEOS/bin/install-sdk" iPhoneOS16.5
           "$THEOS/bin/install-sdk" iPhoneOS14.5
 
+      - name: Check storyboard compiler
+        run: |
+          xcrun ibtool --errors --warnings --notices --minimum-deployment-target 14.0 --compile "$RUNNER_TEMP/Main.storyboardc" app/TrollVNC/TrollVNC/Base.lproj/Main.storyboard
+
       - name: Build editable TrollStore application
         run: |
           source devkit/bootstrap.sh
           gmake clean
-          gmake -j3 package
+          gmake -j3 package messages=yes
 
       - name: Verify TrollStore app and record build details
         run: |
