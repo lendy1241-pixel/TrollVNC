@@ -83,7 +83,10 @@ jobs:
           for name in ('TrollVNC', 'trollvncserver', 'trollvncmanager'):
               binary = app / name
               metadata = subprocess.check_output(['xcrun', 'vtool', '-show-build', str(binary)], text=True)
-              targets = re.findall(r'(?:minos|version)\s+(\d+\.\d+(?:\.\d+)?)', metadata)
+              targets = re.findall(r'^\s*minos\s+(\d+\.\d+(?:\.\d+)?)', metadata, re.M)
+              if not targets:
+                  assert 'LC_VERSION_MIN_IPHONEOS' in metadata, (name, metadata)
+                  targets = re.findall(r'^\s*version\s+(\d+\.\d+(?:\.\d+)?)', metadata, re.M)
               assert targets, (name, metadata)
               assert all(tuple(map(int, target.split('.'))) <= (15, 0, 0) for target in targets), (name, metadata)
               assert 'arm64' in subprocess.check_output(['file', str(binary)], text=True)
@@ -107,6 +110,7 @@ jobs:
           shasum -a 256 ./*.tipa > SHA256SUMS.txt
 
       - name: Upload TrollStore installable application
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: TrollVNC-iPhone13Pro-TrollStore
