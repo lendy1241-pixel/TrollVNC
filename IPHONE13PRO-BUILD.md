@@ -5,7 +5,7 @@ Upstream: https://github.com/owngoal-dev/TrollVNC
 Base commit: `a3e40816ea5b93a7c80c09625175893d15bd1070`
 
 The recommended workflow is **Build iPhone 13 Pro TrollStore app**. It builds an
-IPA-format `.tipa` using upstream's `bootstrap` scheme on macOS 15, Xcode 16.2
+IPA-format `.tipa` using upstream's `bootstrap` scheme on macOS 15, Xcode 16.4
 and a pinned Theos checkout. It verifies app layout, iOS 15 compatibility,
 Mach-O build metadata, code-signing entitlements and SHA-256 checksum.
 Install the result directly with TrollStore. Filza and PreferenceLoader are

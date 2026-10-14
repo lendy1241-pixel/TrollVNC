@@ -37,7 +37,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: '16.2'
+          xcode-version: '16.4'
 
       - name: Install iOS SDKs
         env:
@@ -48,10 +48,12 @@ jobs:
           "$THEOS/bin/install-sdk" iPhoneOS14.5
 
       - name: Check storyboard compiler
+        timeout-minutes: 3
         run: |
           xcrun ibtool --errors --warnings --notices --minimum-deployment-target 14.0 --compile "$RUNNER_TEMP/Main.storyboardc" app/TrollVNC/TrollVNC/Base.lproj/Main.storyboard
 
       - name: Build editable TrollStore application
+        id: application_build
         run: |
           source devkit/bootstrap.sh
           gmake clean
@@ -114,7 +116,7 @@ jobs:
           shasum -a 256 ./*.tipa > SHA256SUMS.txt
 
       - name: Upload TrollStore installable application
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.application_build.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: TrollVNC-iPhone13Pro-TrollStore
